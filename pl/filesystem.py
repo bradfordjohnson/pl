@@ -16,21 +16,21 @@ class MediaFile:
         self.uuid = self.generate_uuid()
         self.target_directory = Path(TARGET_DIRECTORY)
         self.new_name = f"{self.uuid}{self.extension}"
-        self.new_path = self.target_directory / self.new_name
+        self.new_path = Path(self.target_directory / self.new_name)
         
         self.source_file = {
             "name": self.file.name,
             "path": self.file.resolve().as_posix(),
         }
-        self.exif_metadata = self.extract_exif_metadata()
-        self.sha256_checksun = self.generate_sha256_checksum()
+        
 
         # print(self.source_file)
         # print(self.extract_exif_metadata())
         # print(self.generate_sha256_checksum())
-        print(self.new_path)
+        print(f"{self.file} -> {self.new_path}")
         
-        self.move()
+        
+        # self.upload_data()
     
     def generate_uuid(self):
         return str(uuid4())
@@ -52,7 +52,7 @@ class MediaFile:
             print(f"Error generating SHA-256 checksum: {e}")
             return ""
 
-    def move(self):
+    def move(self): # need to add call for move method in script for import
         try:
             self.target_directory.mkdir(parents=True, exist_ok=True)
 
@@ -70,7 +70,9 @@ class MediaFile:
         payload = {
             "id": self.uuid,
             "name": self.new_name,
-            "path": self.new_path
+            "path": self.new_path.resolve().as_posix(),
+            "exif_metadata": self.extract_exif_metadata(),
+            "sha256_checksum": self.generate_sha256_checksum()
         }
         print(payload)
 
