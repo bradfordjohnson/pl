@@ -1,76 +1,105 @@
-from uuid import uuid4
 from pathlib import Path
-from datetime import datetime
+from uuid import uuid4
 from exiftool import ExifToolHelper
 import hashlib
-import mmap
 
 
-def generate_uuid():
-    return str(uuid4())
-
-
-def get_exif_metadata(file_path):
-    TARGET_TAGS = ["ExifToolVersion", "*date*", "*gps*", "*make*", "*model*"]
-    with ExifToolHelper(executable="C:/ExifTool/exiftool.exe") as et:
-        metadata_list = et.get_tags(file_path, TARGET_TAGS)
-        return metadata_list[0]
-
-
-def sha256_checksum(file_path, chunk_size=8192):
-    sha256 = hashlib.sha256()
-    try:
-        with open(file_path, "rb") as f:
-            with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-                for offset in range(0, mm.size(), chunk_size):
-                    sha256.update(mm[offset : offset + chunk_size])
-        return sha256.hexdigest()
-    except FileNotFoundError:
-        print(f"Error: {file_path} not found.")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
-
-
-def generate_media_dimensions(file_path):
-    IMPORT_VERSION = "0.0.3"
-    IMPORT_TIMESTAMP = int(datetime.now().timestamp())
+class MediaFile:
     IMPORT_MEDIA_DIRECTORY = "D:/"
 
-    file = Path(file_path)
+    def __init__(self, file_path):
+        self.file_path = Path(file_path)
 
-    id = generate_uuid()
-    extension = file.suffix.lower()
+        self.id = self.generate_uuid()
+        self.extension = self.file_path.suffix.lower()
+        self.name = f"{self.id}{self.extension}"
+        self.path = f"{self.IMPORT_MEDIA_DIRECTORY}{self.name}"
 
-    return {
-        "id": id,
-        "name": id + extension,
-        "extension": extension,
-        "path": IMPORT_MEDIA_DIRECTORY + id + extension,
-        "size": file.stat().st_size,
-        "source_file": {"name": file.name, "path": file.resolve().as_posix()},
-        "extracted_attributes": get_exif_metadata(file),
-        "import_timestamp": IMPORT_TIMESTAMP,
-        "import_version": IMPORT_VERSION,
-        "sha256_hash": sha256_checksum(file),
-    }
+        self.metadata = self.get_exif_metadata(self.file_path)
+        self.size = self.file_path.stat().st_size
+        self.sha256_hash = self.sha256_checksum(self.file_path)
+
+        self.source_file = {
+            "name": self.file_path.name,
+            "path": self.file_path.resolve().as_posix(),
+        }
+
+    @staticmethod
+    def generate_uuid():
+        return str(uuid4())
+
+    @staticmethod
+    def get_exif_metadata(file_path):
+        TARGET_TAGS = ["ExifToolVersion", "*date*", "*gps*", "*make*", "*model*"]
+
+        with ExifToolHelper(executable="C:/ExifTool/exiftool.exe") as et:
+            metadata_list = et.get_tags(str(file_path), TARGET_TAGS)
+            return metadata_list[0] if metadata_list else {}
+
+    @staticmethod
+    def sha256_checksum(file_path, chunk_size=8192):
+        sha256 = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            while chunk := f.read(chunk_size):
+                sha256.update(chunk)
+        return sha256.hexdigest()
+
+    def generate_media_dimensions(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "extension": self.extension,
+            "path": self.path,
+            "size": self.size,
+            "source_file": self.source_file,
+            "extracted_attributes": self.metadata,
+            "sha256_hash": self.sha256_hash,
+        }
 
 
-def move_file(media_dimensions):
-    source_path = Path(media_dimensions["source_file"]["path"])
-    destination_path = Path(media_dimensions["path"])
-    print(destination_path, source_path)
-    source_path.rename(destination_path)
+class MediaLibrary:
+    def __init__(self, source_dir):
+        self.source_dir = Path(source_dir)
+        self.media_files = []
+        self.sidecar_files = []
 
+    def scan_directory(self):
+        MEDIA_EXTENSIONS = {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".heic",
+            ".raw",
+            ".arw",
+            ".img",
+            ".mp4",
+            ".mov",
+        }
+        SIDECAR_EXTENSIONS = {".xmp", ".json", ".csv"}
 
-# need to make it so only images and videos of specific exts are processed here
-# make another script for sidecar files
-# and another that is a higher level for both
+        for file in self.source_dir.iterdir():
+            if file.suffix.lower() in MEDIA_EXTENSIONS:
+                media_file = MediaFile(file)
+                self.media_files.append(media_file)
+            elif file.suffix.lower() in SIDECAR_EXTENSIONS:
+                self.sidecar_files.append(file)
+
+        print(
+            f"Found {len(self.media_files)} media files and {len(self.sidecar_files)} sidecar files."
+        )
+
+    def import_media(self):
+        self.scan_directory()
+        for media_file in self.media_files:
+            print(media_file.generate_media_dimensions())
+
+    def import_sidecars(self):
+        pass
+
+    def report_results(self):
+        pass
+
 
 if __name__ == "__main__":
-    dims = generate_media_dimensions(
-        "C:/Users/Bradf/OneDrive/Documents/apps/pl/source/IMG_0441_Original.JPEG"
-    )
-
-    move_file(dims)
+    media_lib = MediaLibrary("test/source")
+    media_lib.import_media()
