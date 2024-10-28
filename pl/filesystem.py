@@ -105,6 +105,10 @@ class MediaDirectory:
                 self.sidecar_files.append(file)
                 
         print(f"Found {len(self.media_files)} media files and {len(self.sidecar_files)} sidecar files.")
+        
+    # def import_media_files(self):
+    #     for file in self.media_files:
+    #         MediaFile
 
 if __name__ == "__main__":
     media_dir = MediaDirectory("pl/test")
