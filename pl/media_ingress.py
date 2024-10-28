@@ -10,6 +10,9 @@ import pandas as pd
 
 EXIF_TOOL_EXECUTABLE = "C:/ExifTool/exiftool.exe"
 TARGET_DIRECTORY = "pl/tests"
+BASE_URL = "http://127.0.0.1:8000"
+MEDIA_ENDPOINT = f"{BASE_URL}/media"
+SIDECAR_ENDPOINT = f"{BASE_URL}/sidecar"
 
 
 class MediaFile:
@@ -27,6 +30,7 @@ class MediaFile:
             "name": self.file.name,
             "path": self.file.resolve().as_posix(),
         }
+        self.sha256 = self.generate_sha256_checksum()
         self.metadata = self.extract_exif_metadata()
 
         print(f"{self.file} -> {self.new_path}")
@@ -47,7 +51,9 @@ class MediaFile:
             with open(self.file, "rb") as f:
                 while chunk := f.read(chunk_size):
                     sha256.update(chunk)
+
             return sha256.hexdigest()
+
         except Exception as e:
             print(f"Error generating SHA-256 checksum: {e}")
             return ""
@@ -58,12 +64,15 @@ class MediaFile:
 
             source_path = Path(self.source_file["path"])
             target_path = self.new_path
-
             shutil.move(source_path, target_path)
+
             print(f"Moved file to {target_path}")
+
             return target_path
+
         except Exception as e:
             print(f"Error moving file: {e}")
+
             return None
 
     def upload_data(self):
@@ -75,9 +84,14 @@ class MediaFile:
 
     def _upload_row(self, row):
         payload = {
-            "name": self.file.name,
+            "id": self.uuid,
+            "name": self.new_name,
+            "path": self.new_path.resolve().as_posix(),
+            "extension": self.extension,
             "source_path": self.source_file["path"],
             "source_extension": self.extension,
+            "size": self.size,
+            "sha256": self.sha256,
             "metadata": row,
         }
         print(payload)
