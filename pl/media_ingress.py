@@ -27,15 +27,12 @@ class MediaFile:
             "name": self.file.name,
             "path": self.file.resolve().as_posix(),
         }
+        self.metadata = self.extract_exif_metadata()
 
-        # print(self.source_file)
-        # print(self.extract_exif_metadata())
-        # print(self.generate_sha256_checksum())
         print(f"{self.file} -> {self.new_path}")
 
-        # self.upload_data()
-
-    def generate_uuid(self):
+    @staticmethod
+    def generate_uuid():
         return str(uuid4())
 
     def extract_exif_metadata(self):
@@ -79,7 +76,7 @@ class MediaFile:
     def _upload_row(self, row):
         payload = {
             "name": self.file.name,
-            "source_path": self.source_path,
+            "source_path": self.source_file["path"],
             "source_extension": self.extension,
             "metadata": row,
         }
@@ -218,6 +215,6 @@ if __name__ == "__main__":
 
     media_dir.scan_directory()
 
-    # media_dir.import_media_files()
+    media_dir.import_media_files()
 
-    media_dir.import_sidecar_files()
+    # media_dir.import_sidecar_files()
