@@ -52,7 +52,7 @@ class MediaFile:
             print(f"Error generating SHA-256 checksum: {e}")
             return ""
 
-    def move(self): # need to add call for move method in script for import
+    def move(self):
         try:
             self.target_directory.mkdir(parents=True, exist_ok=True)
 
@@ -106,13 +106,17 @@ class MediaDirectory:
                 
         print(f"Found {len(self.media_files)} media files and {len(self.sidecar_files)} sidecar files.")
         
-    # def import_media_files(self):
-    #     for file in self.media_files:
-    #         MediaFile
+    def import_media_files(self):
+        for file in self.media_files:
+            file.upload_data()
+            file.move()
+            
 
 if __name__ == "__main__":
     media_dir = MediaDirectory("pl/test")
     
     media_dir.scan_directory()
+    
+    media_dir.import_media_files()
     
     
