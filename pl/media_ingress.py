@@ -116,7 +116,7 @@ class SidecarFile:
         try:
             csv = pd.read_csv(self.file, encoding="utf-8")
 
-            rows = csv.to_dict(orient='records')
+            rows = csv.to_dict(orient="records")
 
             result = []
             for row in rows:
@@ -124,10 +124,10 @@ class SidecarFile:
                     "name": self.file.name,
                     "source_path": self.source_path,
                     "source_extension": self.extension,
-                    "metadata": row
+                    "metadata": row,
                 }
                 result.append(combined_row)
-            
+
             return result
         except Exception as e:
             print(f"Error reading CSV file: {e}")
@@ -153,13 +153,13 @@ class SidecarFile:
         except (ET.ParseError, FileNotFoundError) as e:
             print(f"Error reading XMP file: {e}")
             return {}
-        
+
     def upload_data(self):
-            if isinstance(self.metadata, list):
-                for row in self.metadata:
-                    self._upload_row(row)
-            else:
-                self._upload_row(self.metadata)
+        if isinstance(self.metadata, list):
+            for row in self.metadata:
+                self._upload_row(row)
+        else:
+            self._upload_row(self.metadata)
 
     def _upload_row(self, row):
         payload = {
@@ -169,7 +169,6 @@ class SidecarFile:
             "metadata": row,
         }
         print(payload)
-        
 
 
 class MediaDirectory:
@@ -208,7 +207,7 @@ class MediaDirectory:
         for file in self.media_files:
             file.upload_data()
             file.move()
-    
+
     def import_sidecar_files(self):
         for file in self.sidecar_files:
             file.upload_data()
