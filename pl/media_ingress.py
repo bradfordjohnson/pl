@@ -92,7 +92,7 @@ class MediaFile:
             "source_extension": self.extension,
             "size": self.size,
             "sha256": self.sha256,
-            "metadata": row,
+            "file_metadata": row,
         }
         print(payload)
 
@@ -135,7 +135,7 @@ class SidecarFile:
                     "name": self.file.name,
                     "source_path": self.source_path,
                     "source_extension": self.extension,
-                    "metadata": row,
+                    "file_metadata": row,
                 }
                 result.append(combined_row)
 
@@ -177,7 +177,7 @@ class SidecarFile:
             "name": self.file.name,
             "source_path": self.source_path,
             "source_extension": self.extension,
-            "metadata": row,
+            "file_metadata": row,
         }
         print(payload)
 
@@ -231,4 +231,4 @@ if __name__ == "__main__":
 
     media_dir.import_media_files()
 
-    # media_dir.import_sidecar_files()
+    media_dir.import_sidecar_files()
