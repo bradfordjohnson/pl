@@ -10,6 +10,9 @@ import pandas as pd
 
 EXIF_TOOL_EXECUTABLE = "C:/ExifTool/exiftool.exe"
 TARGET_DIRECTORY = "pl/tests"
+BASE_URL = "http://127.0.0.1:8000"
+MEDIA_ENDPOINT = f"{BASE_URL}/media"
+SIDECAR_ENDPOINT = f"{BASE_URL}/sidecar"
 
 
 class MediaFile:
@@ -27,15 +30,13 @@ class MediaFile:
             "name": self.file.name,
             "path": self.file.resolve().as_posix(),
         }
+        self.sha256 = self.generate_sha256_checksum()
+        self.metadata = self.extract_exif_metadata()
 
-        # print(self.source_file)
-        # print(self.extract_exif_metadata())
-        # print(self.generate_sha256_checksum())
         print(f"{self.file} -> {self.new_path}")
 
-        # self.upload_data()
-
-    def generate_uuid(self):
+    @staticmethod
+    def generate_uuid():
         return str(uuid4())
 
     def extract_exif_metadata(self):
@@ -50,7 +51,9 @@ class MediaFile:
             with open(self.file, "rb") as f:
                 while chunk := f.read(chunk_size):
                     sha256.update(chunk)
+
             return sha256.hexdigest()
+
         except Exception as e:
             print(f"Error generating SHA-256 checksum: {e}")
             return ""
@@ -61,12 +64,15 @@ class MediaFile:
 
             source_path = Path(self.source_file["path"])
             target_path = self.new_path
-
             shutil.move(source_path, target_path)
+
             print(f"Moved file to {target_path}")
+
             return target_path
+
         except Exception as e:
             print(f"Error moving file: {e}")
+
             return None
 
     def upload_data(self):
@@ -78,10 +84,15 @@ class MediaFile:
 
     def _upload_row(self, row):
         payload = {
-            "name": self.file.name,
-            "source_path": self.source_path,
+            "id": self.uuid,
+            "name": self.new_name,
+            "path": self.new_path.resolve().as_posix(),
+            "extension": self.extension,
+            "source_path": self.source_file["path"],
             "source_extension": self.extension,
-            "metadata": row,
+            "size": self.size,
+            "sha256": self.sha256,
+            "file_metadata": row,
         }
         print(payload)
 
@@ -124,7 +135,7 @@ class SidecarFile:
                     "name": self.file.name,
                     "source_path": self.source_path,
                     "source_extension": self.extension,
-                    "metadata": row,
+                    "file_metadata": row,
                 }
                 result.append(combined_row)
 
@@ -166,7 +177,7 @@ class SidecarFile:
             "name": self.file.name,
             "source_path": self.source_path,
             "source_extension": self.extension,
-            "metadata": row,
+            "file_metadata": row,
         }
         print(payload)
 
@@ -218,6 +229,6 @@ if __name__ == "__main__":
 
     media_dir.scan_directory()
 
-    # media_dir.import_media_files()
+    media_dir.import_media_files()
 
     media_dir.import_sidecar_files()
