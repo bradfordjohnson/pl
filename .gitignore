@@ -3,3 +3,4 @@ example*
 test*
 tests*
 __*
+*.log
