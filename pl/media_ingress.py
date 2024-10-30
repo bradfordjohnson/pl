@@ -1,18 +1,27 @@
-from pathlib import Path
-from exiftool import ExifToolHelper
-import hashlib
-from uuid import uuid4
-import shutil
+import requests
 import json
 import csv
+import hashlib
+import logging
+import shutil
 import xml.etree.ElementTree as ET
 import pandas as pd
+from pathlib import Path
+from uuid import uuid4
+from exiftool import ExifToolHelper
+import os
 
 EXIF_TOOL_EXECUTABLE = "C:/ExifTool/exiftool.exe"
 TARGET_DIRECTORY = "pl/tests"
 BASE_URL = "http://127.0.0.1:8000"
 MEDIA_ENDPOINT = f"{BASE_URL}/media"
 SIDECAR_ENDPOINT = f"{BASE_URL}/sidecar"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("media-ingress.log"), logging.StreamHandler()],
+)
 
 
 class MediaFile:
@@ -33,7 +42,7 @@ class MediaFile:
         self.sha256 = self.generate_sha256_checksum()
         self.metadata = self.extract_exif_metadata()
 
-        print(f"{self.file} -> {self.new_path}")
+        logging.info(f"{self.file} -> {self.new_path}")
 
     @staticmethod
     def generate_uuid():
@@ -41,9 +50,13 @@ class MediaFile:
 
     def extract_exif_metadata(self):
         TARGET_TAGS = ["ExifToolVersion", "*date*", "*gps*", "*make*", "*model*"]
-        with ExifToolHelper(executable=EXIF_TOOL_EXECUTABLE) as et:
-            metadata = et.get_tags(str(self.file), TARGET_TAGS)
-            return metadata[0] if metadata else {}
+        try:
+            with ExifToolHelper(executable=EXIF_TOOL_EXECUTABLE) as et:
+                metadata = et.get_tags(str(self.file), TARGET_TAGS)
+                return metadata[0] if metadata else {}
+        except Exception as e:
+            logging.error(f"Error extracting EXIF metadata: {e}")
+            return {}
 
     def generate_sha256_checksum(self, chunk_size=8192):
         sha256 = hashlib.sha256()
@@ -51,28 +64,19 @@ class MediaFile:
             with open(self.file, "rb") as f:
                 while chunk := f.read(chunk_size):
                     sha256.update(chunk)
-
             return sha256.hexdigest()
-
         except Exception as e:
-            print(f"Error generating SHA-256 checksum: {e}")
+            logging.error(f"Error generating SHA-256 checksum: {e}")
             return ""
 
     def move(self):
         try:
             self.target_directory.mkdir(parents=True, exist_ok=True)
-
-            source_path = Path(self.source_file["path"])
-            target_path = self.new_path
-            shutil.move(source_path, target_path)
-
-            print(f"Moved file to {target_path}")
-
-            return target_path
-
+            shutil.move(self.source_file["path"], self.new_path)
+            logging.info(f"Moved file to {self.new_path}")
+            return self.new_path
         except Exception as e:
-            print(f"Error moving file: {e}")
-
+            logging.error(f"Error moving file: {e}")
             return None
 
     def upload_data(self):
@@ -94,54 +98,57 @@ class MediaFile:
             "sha256": self.sha256,
             "file_metadata": row,
         }
-        print(payload)
+        try:
+            response = requests.post(MEDIA_ENDPOINT, json=payload, timeout=10)
+            response.raise_for_status()
+            logging.info(f"Upload successful: {response.json()}")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Upload failed: {e} | Payload: {json.dumps(payload)}")
 
 
 class SidecarFile:
-    def __init__(self, path):
+    def __init__(self, path: Path):
         self.file = path
         self.extension = self.file.suffix.lower()
         self.source_path = self.file.resolve().as_posix()
         self.metadata = self.extract_metadata()
 
-        # print(self.metadata)
-
     def extract_metadata(self):
-        if self.extension == ".json":
-            self.metadata = self._load_json()
-        elif self.extension == ".csv":
-            self.metadata = self._load_csv()
-        elif self.extension == ".xmp":
-            self.metadata = self._load_xmp()
-        return self.metadata
+        """Extract metadata based on file extension."""
+        try:
+            if self.extension == ".json":
+                return self._load_json()
+            elif self.extension == ".csv":
+                return self._load_csv()
+            elif self.extension == ".xmp":
+                return self._load_xmp()
+        except Exception as e:
+            logging.error(f"Error extracting metadata: {e}")
+            return {}
 
     def _load_json(self):
         try:
             with self.file.open("r", encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, FileNotFoundError) as e:
-            print(f"Error reading JSON file: {e}")
+            logging.error(f"Error reading JSON file: {e}")
             return {}
 
     def _load_csv(self):
         try:
-            csv = pd.read_csv(self.file, encoding="utf-8")
-
-            rows = csv.to_dict(orient="records")
-
-            result = []
-            for row in rows:
-                combined_row = {
+            csv_data = pd.read_csv(self.file, encoding="utf-8")
+            rows = csv_data.to_dict(orient="records")
+            return [
+                {
                     "name": self.file.name,
                     "source_path": self.source_path,
                     "source_extension": self.extension,
                     "file_metadata": row,
                 }
-                result.append(combined_row)
-
-            return result
+                for row in rows
+            ]
         except Exception as e:
-            print(f"Error reading CSV file: {e}")
+            logging.error(f"Error reading CSV file: {e}")
             return []
 
     def _load_xmp(self):
@@ -162,24 +169,47 @@ class SidecarFile:
 
             return metadata
         except (ET.ParseError, FileNotFoundError) as e:
-            print(f"Error reading XMP file: {e}")
+            logging.error(f"Error reading XMP file: {e}")
             return {}
 
     def upload_data(self):
+        success = True
+
         if isinstance(self.metadata, list):
             for row in self.metadata:
-                self._upload_row(row)
+                if not self._upload_row(row):
+                    success = False
         else:
-            self._upload_row(self.metadata)
+            success = self._upload_row(self.metadata)
+
+        if success:
+            self.cleanup()
 
     def _upload_row(self, row):
         payload = {
+            "id": MediaFile.generate_uuid(),
             "name": self.file.name,
             "source_path": self.source_path,
             "source_extension": self.extension,
             "file_metadata": row,
         }
-        print(payload)
+        try:
+            response = requests.post(SIDECAR_ENDPOINT, json=payload, timeout=10)
+            response.raise_for_status()
+            logging.info(f"Upload successful: {response.json()}")
+            return True
+        except requests.exceptions.RequestException as e:
+            logging.error(
+                f"Sidecar upload failed: {e} | Payload: {json.dumps(payload, indent=2)}"
+            )
+            return False
+
+    def cleanup(self):
+        try:
+            os.remove(self.file)
+            logging.info(f"Removed sidecar file: {self.file}")
+        except Exception as e:
+            logging.error(f"Failed to remove sidecar file: {e}")
 
 
 class MediaDirectory:
@@ -210,7 +240,7 @@ class MediaDirectory:
                 sidecar_file = SidecarFile(file)
                 self.sidecar_files.append(sidecar_file)
 
-        print(
+        logging.info(
             f"Found {len(self.media_files)} media files and {len(self.sidecar_files)} sidecar files."
         )
 
@@ -226,9 +256,6 @@ class MediaDirectory:
 
 if __name__ == "__main__":
     media_dir = MediaDirectory("pl/test")
-
     media_dir.scan_directory()
-
     media_dir.import_media_files()
-
     media_dir.import_sidecar_files()
