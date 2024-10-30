@@ -45,3 +45,33 @@ class MediaFileCreate(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class SidecarFileModel(Base):
+    __tablename__ = "sidecar"
+
+    id = Column(Text, primary_key=True, nullable=False)
+    name = Column(Text, nullable=False)
+    source_path = Column(Text, nullable=False)
+    source_extension = Column(String(10), nullable=False)
+    file_metadata = Column(JSON, nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "source_path": self.source_path,
+            "source_extension": self.source_extension,
+            "file_metadata": self.file_metadata,
+        }
+
+
+class SidecarFileCreate(BaseModel):
+    id: str
+    name: str
+    source_path: str
+    source_extension: str
+    file_metadata: dict = None
+
+    class Config:
+        orm_mode = True
