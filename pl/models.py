@@ -12,6 +12,7 @@ class MediaFileModel(Base):
     name = Column(Text, nullable=False)
     path = Column(Text, nullable=False)
     extension = Column(String(10), nullable=False)
+    source_name = Column(Text, nullable=False)
     source_path = Column(Text, nullable=False)
     source_extension = Column(String(10), nullable=False)
     size = Column(BigInteger, nullable=False)
@@ -24,6 +25,7 @@ class MediaFileModel(Base):
             "name": self.name,
             "path": self.path,
             "extension": self.extension,
+            "source_name": self.source_name,
             "source_path": self.source_path,
             "source_extension": self.source_extension,
             "size": self.size,
@@ -37,6 +39,7 @@ class MediaFileCreate(BaseModel):
     name: str
     path: str
     extension: str
+    source_name: str
     source_path: str
     source_extension: str
     size: int

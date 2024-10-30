@@ -93,6 +93,7 @@ class MediaFile:
             "path": self.new_path.resolve().as_posix(),
             "extension": self.extension,
             "source_path": self.source_file["path"],
+            "source_name": self.source_file["name"],
             "source_extension": self.extension,
             "size": self.size,
             "sha256": self.sha256,

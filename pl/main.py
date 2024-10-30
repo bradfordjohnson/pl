@@ -32,6 +32,7 @@ async def create_media_file(
         name=media_file.name,
         path=media_file.path,
         extension=media_file.extension,
+        source_name=media_file.source_name,
         source_path=media_file.source_path,
         source_extension=media_file.source_extension,
         size=media_file.size,
