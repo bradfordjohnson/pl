@@ -11,8 +11,9 @@ from uuid import uuid4
 from exiftool import ExifToolHelper
 import os
 
+
 EXIF_TOOL_EXECUTABLE = "C:/ExifTool/exiftool.exe"
-TARGET_DIRECTORY = "pl/tests"
+TARGET_DIRECTORY = "D:/media"
 BASE_URL = "http://127.0.0.1:8000"
 MEDIA_ENDPOINT = f"{BASE_URL}/media"
 SIDECAR_ENDPOINT = f"{BASE_URL}/sidecar"
@@ -256,7 +257,7 @@ class MediaDirectory:
 
 
 if __name__ == "__main__":
-    media_dir = MediaDirectory("pl/test")
+    media_dir = MediaDirectory("D:/all/all/all")
     media_dir.scan_directory()
     media_dir.import_media_files()
     media_dir.import_sidecar_files()
