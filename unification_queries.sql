@@ -1,4 +1,9 @@
 SELECT
+    DISTINCT key
+FROM 
+    media, LATERAL jsonb_each_text(file_metadata::jsonb) AS metadata;
+
+SELECT
     media.id
 FROM
     media
