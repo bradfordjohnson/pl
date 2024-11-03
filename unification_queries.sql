@@ -127,4 +127,37 @@ SELECT
     COALESCE(file_metadata->>'XMP:PantryMetadataDate', NULL) AS XMP_PantryMetadataDate,
     COALESCE(file_metadata->>'XMP:PantryModifyDate', NULL) AS XMP_PantryModifyDate,
     COALESCE(file_metadata->>'XMP:PantryOriginationDate', NULL) AS XMP_PantryOriginationDate
-FROM media
+FROM media;
+
+SELECT
+    id,
+    COALESCE(file_metadata->>'url', NULL) AS url,
+    COALESCE(file_metadata->>'GPSLatitude', NULL) AS GPSLatitude,
+    COALESCE(file_metadata->>'photoTakenTime', NULL) AS photoTakenTime,
+    COALESCE(file_metadata->>'title', NULL) AS title,
+    COALESCE(file_metadata->>'Description_about', NULL) AS Description_about,
+    COALESCE(file_metadata->>'DateCreated', NULL) AS DateCreated,
+    COALESCE(file_metadata->>'geoData', NULL) AS geoData,
+    COALESCE(file_metadata->>'imageViews', NULL) AS imageViews,
+    COALESCE(file_metadata->>'geoDataExif', NULL) AS geoDataExif,
+    COALESCE(file_metadata->>'GPSLongitude', NULL) AS GPSLongitude,
+    COALESCE(file_metadata->>'GPSSpeed', NULL) AS GPSSpeed,
+    COALESCE(file_metadata->>'GPSAltitudeRef', NULL) AS GPSAltitudeRef,
+    COALESCE(file_metadata->>'date', NULL) AS date,
+    COALESCE(file_metadata->>'GPSImgDirection', NULL) AS GPSImgDirection,
+    COALESCE(file_metadata->>'access', NULL) AS access,
+    COALESCE(file_metadata->>'GPSImgDirectionRef', NULL) AS GPSImgDirectionRef,
+    COALESCE(file_metadata->>'creationTime', NULL) AS creationTime,
+    COALESCE(file_metadata->>'GPSAltitude', NULL) AS GPSAltitude,
+    COALESCE(file_metadata->>'GPSLongitudeRef', NULL) AS GPSLongitudeRef,
+    COALESCE(file_metadata->>'trashed', NULL) AS trashed,
+    COALESCE(file_metadata->>'xmpmeta_xmptk', NULL) AS xmpmeta_xmptk,
+    COALESCE(file_metadata->>'googlePhotosOrigin', NULL) AS googlePhotosOrigin,
+    COALESCE(file_metadata->>'GPSLatitudeRef', NULL) AS GPSLatitudeRef,
+    COALESCE(file_metadata->>'sharedAlbumComments', NULL) AS sharedAlbumComments,
+    COALESCE(file_metadata->>'favorited', NULL) AS favorited,
+    COALESCE(file_metadata->>'GPSHPositioningError', NULL) AS GPSHPositioningError,
+    COALESCE(file_metadata->>'GPSSpeedRef', NULL) AS GPSSpeedRef,
+    COALESCE(file_metadata->>'description', NULL) AS description,
+    COALESCE(file_metadata->>'GPSTimeStamp', NULL) AS GPSTimeStamp
+FROM sidecar;
