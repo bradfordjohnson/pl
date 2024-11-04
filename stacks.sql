@@ -1,16 +1,14 @@
-WITH Hashes AS (
-  SELECT
-    sha256
-	FROM
-    media
-	GROUP BY
-    1
-	HAVING(COUNT(DISTINCT id) > 1)
-)
-SELECT
-	Hashes.sha256,
-	media.id
-FROM
-  Hashes
-LEFT OUTER JOIN
-  media ON Hashes.sha256 = media.sha256
+WITH cte AS
+  (SELECT id,
+          regexp_replace(lower(replace(name, source_extension, '')), '\..*$', '') AS name,
+          replace(source_path, name, '') AS source_dir
+   FROM sidecar)
+SELECT media.id,
+       source_dir,
+       replace(lower(source_name), source_extension, '') AS media_name,
+       cte.name,
+       cte.id AS sidecar_id
+FROM media
+LEFT OUTER JOIN cte ON cte.source_dir = replace(source_path, source_name, '')
+AND cte.name LIKE concat(replace(lower(source_name), source_extension, ''))
+WHERE cte.id IS NOT NULL
