@@ -4,12 +4,10 @@ WITH cte AS
           REPLACE(source_path, name, '') AS source_dir
    FROM sidecar),
    hashes AS (
-	SELECT
-		sha256
+	SELECT sha256
 	FROM media
 	GROUP BY 1
-	HAVING(COUNT(DISTINCT id) > 1)
-)
+	HAVING(COUNT(DISTINCT id) > 1))
 SELECT media.id,
 	   extension,
        source_dir,
