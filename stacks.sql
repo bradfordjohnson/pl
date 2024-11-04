@@ -13,7 +13,8 @@ WITH cte AS
 SELECT media.id,
 	   extension,
        source_dir,
-	   CASE WHEN COUNT(media.id) OVER(PARTITION BY cte.name) > 1 THEN TRUE ELSE FALSE END AS has_multiple_files_with_same_name,
+	   CASE WHEN media.sha256 IN (SELECT sha256 FROM hashes) THEN TRUE ELSE FALSE END AS has_duplicate_hashes,
+	   CASE WHEN COUNT(media.id) OVER(PARTITION BY cte.name) > 1 THEN TRUE ELSE FALSE END AS has_multiple_files_with_similar_name,
        REPLACE(LOWER(source_name), source_extension, '') AS media_name,
        cte.name,
        cte.id AS sidecar_id
@@ -21,5 +22,4 @@ FROM media
 LEFT OUTER JOIN cte ON cte.source_dir = REPLACE(source_path, source_name, '')
 AND cte.name LIKE CONCAT(REPLACE(LOWER(source_name), source_extension, ''))
 WHERE cte.id IS NOT NULL
-AND media.sha256 NOT IN (SELECT sha256 FROM hashes)
 ORDER BY name
