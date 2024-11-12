@@ -257,7 +257,7 @@ class MediaDirectory:
 
 
 if __name__ == "__main__":
-    media_dir = MediaDirectory("D:/all/all/all")
+    media_dir = MediaDirectory("")
     media_dir.scan_directory()
     media_dir.import_media_files()
     media_dir.import_sidecar_files()
